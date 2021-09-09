@@ -23,7 +23,23 @@ def download_file(s, url, local_filename):
     return local_filename
 
 
-def parse_message(s, message_json, file_handle):
+def parse_message(s, message, file_handle):
+    message_dict = {
+        '分享视频': {
+            'url':
+            'https://upload.api.weibo.com/2/mss/msget?source=209678993&fid={}',
+            'ext': '.mp4'
+        },
+        '分享图片': {
+            'url':
+            'https://upload.api.weibo.com/2/mss/msget?source=209678993&fid={}',
+            'ext': '.jpg'
+        },
+        '分享语音': {
+            'url': 'https://api.weibo.com/amrdata/{}?source=209678993',
+            'ext': 'mp3'
+        }
+    }
     message_time = message['created_at']
     message_author = message['sender_screen_name']
     message_text = message['text']
@@ -32,28 +48,17 @@ def parse_message(s, message_json, file_handle):
         t = datetime.datetime.strptime(message_time, "%a %b %d %H:%M:%S %z %Y")
         message_time = t.strftime("%Y-%m-%d %H:%M:%S")
 
-    if message_text == '分享视频' and 'ext_text' in message:
+    # 非文本，有附件
+    if 'ext_text' in message and 'att_ids' in message:
         for fid in list(set(message['att_ids'])):
-            attachment_url = f'https://upload.api.weibo.com/2/mss/msget?source=209678993&fid={fid}'
-            local_filename = message_time + ' ' + str(fid) + '.mp4'
+            local_filename = message_time + ' ' + str(
+                fid) + message_dict[message_text]['ext']
             local_filename = local_filename.replace(':', '-')
-            download_file(s, attachment_url, local_filename)
+            download_file(s, message_dict[message_text]['url'].format(fid),
+                          local_filename)
 
-    if message_text == '分享图片' and 'ext_text' in message:
-        for fid in list(set(message['att_ids'])):
-            attachment_url = f'https://upload.api.weibo.com/2/mss/msget?source=209678993&fid={fid}'
-            local_filename = message_time + ' ' + str(fid) + '.jpg'
-            local_filename = local_filename.replace(':', '-')
-            download_file(s, attachment_url, local_filename)
-
-    if message_text == '分享语音' and 'ext_text' in message:
-        for fid in list(set(message['att_ids'])):
-            attachment_url = f'https://api.weibo.com/amrdata/{fid}?source=209678993'
-            local_filename = message_time + ' ' + str(fid) + '.mp3'
-            local_filename = local_filename.replace(':', '-')
-            download_file(s, attachment_url, local_filename)
-
-    f.write(message_time + ' ' + message_author + ' ' + message_text + '\n')
+    file_handle.write(message_time + ' ' + message_author + ' ' +
+                      message_text + '\n')
 
 
 if __name__ == '__main__':
